@@ -1,16 +1,23 @@
-// CIP-57 type surface (tolerant) + normalized shapes.
-// Purposes are limited to spend|mint|withdraw for now.
 import type { Network } from "@meshsdk/core";
 
-export type Cip57Purpose = "spend" | "mint" | "withdraw";
+// ----- Purposes (add "publish")
+export type Cip57Purpose = "spend" | "mint" | "withdraw" | "publish";
 
+// ----- Plutus versions (accept many, normalize to V1/V2/V3)
 export type PlutusVersionNorm = "V1" | "V2" | "V3";
+export type PlutusVersionBlueprint = "v1" | "v2" | "v3" | string;
+export type PlutusVersionWire = "PlutusV1" | "PlutusV2" | "PlutusV3" | string;
 
+// ----- CIP-57 Schema (broaden applicators)
 export type Cip57Schema =
   | { dataType?: string; [k: string]: unknown }
+  | { $ref: string }
   | { oneOf: Cip57Schema[] }
-  | { $ref?: string; [k: string]: unknown };
+  | { anyOf: Cip57Schema[] }
+  | { allOf: Cip57Schema[] }
+  | { not: Cip57Schema };
 
+// ----- Arg (purpose can be string or a oneOf of purposes)
 export interface Cip57Arg {
   title?: string;
   description?: string;
@@ -18,16 +25,21 @@ export interface Cip57Arg {
   schema: Cip57Schema | { oneOf: Cip57Schema[] };
 }
 
-export interface Cip57Validator {
+// ----- Validator (make redeemer required; enforce code/hash pairing)
+interface Cip57ValidatorBase {
   title: string;
   description?: string;
-  compiledCode?: string; // hex (double-CBOR UPLC)
-  hash?: string;         // blake2b-224 hex
-  redeemer?: Cip57Arg | { oneOf: Cip57Arg[] };
+  redeemer: Cip57Arg | { oneOf: Cip57Arg[] }; // prefer required
   datum?: Cip57Arg | { oneOf: Cip57Arg[] };
   parameters?: (Cip57Arg | { oneOf: Cip57Arg[] })[];
-  plutusVersion?: "PlutusV1" | "PlutusV2" | "PlutusV3" | string;
+  // Non-standard but seen: allow per-validator override, else use preamble.plutusVersion
+  plutusVersion?: PlutusVersionWire | PlutusVersionBlueprint | string;
 }
+
+// If compiledCode is present, hash must be present.
+export type Cip57Validator =
+  | (Cip57ValidatorBase & { compiledCode?: undefined; hash?: undefined })
+  | (Cip57ValidatorBase & { compiledCode: string; hash: string });
 
 export interface Cip57Blueprint {
   preamble?: {
@@ -35,19 +47,18 @@ export interface Cip57Blueprint {
     description?: string;
     version?: string;
     compiler?: { name: string; version?: string };
-    plutusVersion?: "PlutusV1" | "PlutusV2" | "PlutusV3" | string;
+    plutusVersion?: PlutusVersionBlueprint | PlutusVersionWire | string;
     license?: string;
   };
-  validators:
-    | Record<string, Cip57Validator>
-    | Cip57Validator[]
-    | { validators: Cip57Validator[] };
+  // Spec says object; Aiken emits array -> support both
+  validators: Record<string, Cip57Validator> | Cip57Validator[];
   definitions?: Record<string, unknown>;
 }
 
+// ----- Normalized views
 export type NormalizedValidator = Cip57Validator & {
-  name: string;                 // from object key or title
-  purposes: Cip57Purpose[];     // inferred from title/explicit (limited to 3)
+  name: string;                   // from object key or title
+  purposes: Cip57Purpose[];       // include "publish" if present
 };
 
 export interface ScriptArtifacts {
@@ -58,9 +69,10 @@ export interface ScriptArtifacts {
   scriptAddress: string;  // bech32
 }
 
+// ----- Build options (values match Mesh docs)
 export interface BuildOptions {
-    network: Network;               // "testnet" | "preview" | "preprod" | "mainnet"
-    stakeKeyHashHex?: string | null;
-    isScriptStakeCredential?: boolean; // ✅ optional, default false
-    forceComputeHash?: boolean;
-  }
+  network: Network;               // "testnet" | "preview" | "preprod" | "mainnet"
+  stakeKeyHashHex?: string | null;
+  isScriptStakeCredential?: boolean; // optional, default false
+  forceComputeHash?: boolean;
+}
