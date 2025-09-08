@@ -12,10 +12,11 @@
 import { describe, it, expect } from "vitest";
 import { buildParamDescriptors } from "~/lib/cip57/params";
 import type { Cip57Arg } from "~/lib/cip57/types";
+import type { Cip57DataType } from "~/lib/cip57/types";
 
 const defs = {
-  "cardano/assets/PolicyId": { title: "PolicyId", dataType: "bytes" },
-  "cardano/assets/AssetName": { title: "AssetName", dataType: "bytes" },
+  "cardano/assets/PolicyId": { title: "PolicyId", dataType: "bytes" as Cip57DataType },
+  "cardano/assets/AssetName": { title: "AssetName", dataType: "bytes" as Cip57DataType },
 };
 
 const refParam = (title: string, ref: string): Cip57Arg => ({
@@ -87,7 +88,7 @@ describe("buildParamDescriptors", () => {
         {
           title: "n",
           schema: {
-            dataType: "integer",
+            dataType: "integer" as Cip57DataType,
             minimum: "-5",
             maximum: "100",
             exclusiveMaximum: "101", // v < 101
@@ -116,7 +117,7 @@ describe("buildParamDescriptors", () => {
       parameters: [
         {
           title: "blob",
-          schema: { dataType: "bytes", minLength: 2, maxLength: 4 }, // bytes length
+          schema: { dataType: "bytes" as Cip57DataType, minLength: 2, maxLength: 4 }, // bytes length
         },
       ],
     };
@@ -132,8 +133,8 @@ describe("buildParamDescriptors", () => {
   it("produces nested descriptors for list (homogeneous) and tuple-style items", () => {
     const validator = {
       parameters: [
-        { title: "homolist", schema: { dataType: "list", items: { dataType: "integer" } } },
-        { title: "tuple", schema: { dataType: "list", items: [{ dataType: "bytes" }, { dataType: "integer" }] } },
+        { title: "homolist", schema: { dataType: "list" as Cip57DataType, items: { dataType: "integer" as Cip57DataType } } },
+        { title: "tuple", schema: { dataType: "list" as Cip57DataType, items: [{ dataType: "bytes" as Cip57DataType }, { dataType: "integer" as Cip57DataType }] } },
       ],
     };
     const [h, t] = buildParamDescriptors(validator, {});
@@ -152,7 +153,7 @@ describe("buildParamDescriptors", () => {
       parameters: [
         {
           title: "kv",
-          schema: { dataType: "map", keys: { dataType: "bytes" }, values: { dataType: "integer" } },
+          schema: { dataType: "map" as Cip57DataType, keys: { dataType: "bytes" as Cip57DataType }, values: { dataType: "integer" as Cip57DataType } },
         },
       ],
     };
@@ -168,8 +169,8 @@ describe("buildParamDescriptors", () => {
         {
           title: "MyConstr",
           schema: {
-            dataType: "constructor",
-            fields: [{ dataType: "bytes" }, { dataType: "integer" }],
+            dataType: "constructor" as Cip57DataType,
+            fields: [{ dataType: "bytes" as Cip57DataType }, { dataType: "integer" as Cip57DataType }],
           },
         },
       ],
@@ -187,7 +188,7 @@ describe("buildParamDescriptors", () => {
         {
           title: "choice",
           schema: {
-            oneOf: [{ dataType: "integer" }, { dataType: "bytes" }],
+            oneOf: [{ dataType: "integer" as Cip57DataType }, { dataType: "bytes" as Cip57DataType }],
           },
         },
       ],
@@ -203,8 +204,8 @@ describe("buildParamDescriptors", () => {
       parameters: [
         {
           oneOf: [
-            { title: "A", schema: { dataType: "bytes" } },
-            { title: "B", schema: { dataType: "integer" } },
+            { title: "A", schema: { dataType: "bytes" as Cip57DataType } },
+            { title: "B", schema: { dataType: "integer" as Cip57DataType } },
           ],
         },
       ],

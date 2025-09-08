@@ -8,6 +8,7 @@ import type {
   } from "./types";
   
   import type { Network } from "@meshsdk/core";
+  import { Cip57BlueprintSchema } from "./schema";
   
   /* -------------------- Hex helpers -------------------- */
   
@@ -33,6 +34,30 @@ import type {
     if (s === "v2" || s === "plutusv2") return "V2";
     if (s === "v3" || s === "plutusv3") return "V3";
     return undefined; // fall back to preamble or error upstream
+  }
+
+  /* -------------------- Blueprint parsing -------------------- */
+
+/**
+ * Parse and validate a CIP-57 blueprint JSON.
+ * Throws ZodError if validation fails.
+ */
+export function parseBlueprint(json: unknown): Cip57Blueprint {
+    return Cip57BlueprintSchema.parse(json);
+  }
+  
+  /**
+   * Safe parse variant — returns a success flag instead of throwing.
+   */
+  export function safeParseBlueprint(json: unknown):
+    | { success: true; data: Cip57Blueprint }
+    | { success: false; error: string } {
+    const result = Cip57BlueprintSchema.safeParse(json);
+    if (result.success) return { success: true, data: result.data };
+    return {
+      success: false,
+      error: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+    };
   }
   
   /* -------------------- Validator picking -------------------- */
