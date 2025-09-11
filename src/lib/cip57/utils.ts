@@ -71,52 +71,71 @@ export function parseBlueprint(json: unknown): Cip57Blueprint {
   
   /* -------------------- Purpose inference (tolerates publish) -------------------- */
   
-  function flattenArgChoice(arg?: Cip57Arg | { oneOf: Cip57Arg[] }): Cip57Arg[] {
+  // Flatten an arg that may be a single Cip57Arg or { oneOf: Cip57Arg[] }.
+  export function flattenArgChoice(arg?: Cip57Arg | { oneOf: Cip57Arg[] }): Cip57Arg[] {
     if (!arg) return [];
-    const maybe = arg as any;
-    if ("oneOf" in maybe && Array.isArray(maybe.oneOf)) return maybe.oneOf as Cip57Arg[];
+    if (typeof arg === "object" && "oneOf" in arg && Array.isArray((arg as any).oneOf)) {
+      return ((arg as any).oneOf as Cip57Arg[]).filter(Boolean);
+    }
     return [arg as Cip57Arg];
   }
   
-  function acceptPurposeRaw(set: Set<Cip57Purpose>, p: unknown) {
-    if (!p) return;
-    // string case
-    if (typeof p === "string") {
-      const s = p.toLowerCase();
-      if (s === "spend" || s === "mint" || s === "withdraw" || s === "publish") {
-        set.add(s as Cip57Purpose);
+  // Read a raw purpose (string or { oneOf: [...] }, allowing nesting) and add valid values to the set.
+  export function acceptPurposeRaw(set: Set<Cip57Purpose>, p: unknown): void {
+    if (p == null) return;
+  
+    const addIfValid = (s: string) => {
+      const k = s.trim().toLowerCase();
+      if (k === "spend" || k === "mint" || k === "withdraw" || k === "publish") {
+        set.add(k as Cip57Purpose);
       }
+    };
+  
+    if (typeof p === "string") {
+      addIfValid(p);
       return;
     }
-    // { oneOf: Cip57Purpose[] } case
-    const maybe = p as any;
-    if (maybe && typeof maybe === "object" && Array.isArray(maybe.oneOf)) {
-      for (const q of maybe.oneOf) acceptPurposeRaw(set, q);
-    }
-  }
   
-  export function inferPurposes(v: Cip57Validator): Cip57Purpose[] {
-    const set = new Set<Cip57Purpose>();
+    if (typeof p === "object") {
+      const o = p as any;
   
-    // Heuristic from title suffix (Aiken emits "... .spend", "... .mint", "... .withdraw").
-    // Also tolerate ".publish" even if your public API doesn’t use it yet.
-    const t = (v.title || "").toLowerCase();
-    if (t.endsWith(".spend")) set.add("spend");
-    if (t.endsWith(".mint")) set.add("mint");
-    if (t.endsWith(".withdraw")) set.add("withdraw");
-    if (t.endsWith(".publish")) set.add("publish" as Cip57Purpose);
+      // { oneOf: [...] } where elements can be strings or nested objects
+      if (Array.isArray(o.oneOf)) {
+        for (const q of o.oneOf) acceptPurposeRaw(set, q);
+        return;
+      }
   
-    // Explicit purposes attached to args (string or { oneOf: [...] }).
-    for (const a of flattenArgChoice(v.redeemer)) acceptPurposeRaw(set, a.purpose as any);
-    for (const a of flattenArgChoice(v.datum)) acceptPurposeRaw(set, a.purpose as any);
-    if (Array.isArray(v.parameters)) {
-      for (const pa of v.parameters) {
-        for (const a of flattenArgChoice(pa as any)) acceptPurposeRaw(set, a.purpose as any);
+      // Be tolerant if an unexpected wrapper { purpose: ... } shows up
+      if ("purpose" in o) {
+        acceptPurposeRaw(set, o.purpose);
+        return;
       }
     }
-  
-    return Array.from(set);
   }
+  
+  // Infer purposes from explicit arg-level declarations; if none, fall back to title suffix.
+  // Returns [] if nothing explicit or inferable exists.
+  export function inferPurposes(v: Cip57Validator): Cip57Purpose[] {
+      const explicit = new Set<Cip57Purpose>();
+    
+      // Collect explicit purposes from redeemer, datum, and parameters
+      for (const a of flattenArgChoice(v.redeemer)) acceptPurposeRaw(explicit, (a as any).purpose);
+      for (const a of flattenArgChoice(v.datum))    acceptPurposeRaw(explicit, (a as any).purpose);
+      if (Array.isArray(v.parameters)) {
+        for (const pa of v.parameters) {
+          for (const a of flattenArgChoice(pa as any)) acceptPurposeRaw(explicit, (a as any).purpose);
+        }
+      }
+    
+      if (explicit.size > 0) {
+        return Array.from(explicit);
+      }
+    
+      // Heuristic from title: match a trailing whole word (spend|mint|withdraw|publish)
+      const title = (v.title ?? "").trim().toLowerCase();
+      const m = /\b(spend|mint|withdraw|publish)\b\s*$/i.exec(title);
+      return m ? [m[1]?.toLowerCase() as Cip57Purpose] : [];
+    }
   
   /* -------------------- Validators normalization -------------------- */
   
