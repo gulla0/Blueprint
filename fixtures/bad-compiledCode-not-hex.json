@@ -1,0 +1,11 @@
+{
+    "preamble": {
+      "title": "gzero/dedog",
+      "version": "0.0.0",
+      "plutusVersion": "v3",
+      "compiler": { "name": "Aiken", "version": "v1.1.15+f03633e" }
+    },
+    "validators": [
+      { "title": "dedog_expert_v1.dedog_expert.spend", "compiledCode": "zz" }
+    ]
+  }
