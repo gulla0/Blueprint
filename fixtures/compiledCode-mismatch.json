@@ -1,0 +1,22 @@
+{
+  "preamble": {
+    "title": "Test",
+    "version": "0.0.1",
+    "plutusVersion": "v3",
+    "compiler": { "name": "Aiken", "version": "1.0.0" }
+  },
+  "validators": [
+    {
+      "title": "revenue.share.spend",
+      "compiledCode": "4e4d010000",
+      "hash": "deaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+      "parameters": []
+    },
+    {
+      "title": "revenue.share.withdraw",
+      "compiledCode": "4e4d020000",
+      "hash": "deaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+      "parameters": []
+    }
+  ]
+}

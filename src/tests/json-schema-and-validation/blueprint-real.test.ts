@@ -22,6 +22,13 @@ const invalidJson = [
   "bad-hash-non-hex.json",
 ] as const;
 
+// New equality guard failure cases
+const equalityGuardFailures = [
+  "compiledCode-mismatch.json",
+  "hash-mismatch.json",
+  "parameters-mismatch.json",
+] as const;
+
 describe("Valid blueprints", () => {
   it.each(validJson)("accepts %s (schema + API)", (filename) => {
     const obj = readJsonFixture(filename);
@@ -49,6 +56,24 @@ describe("Invalid blueprints (JSON)", () => {
     // API-level
     const v = validateAikenBlueprint(obj);
     expect(v.ok).toBe(false);
+  });
+});
+
+describe("Equality guard failures", () => {
+  it.each(equalityGuardFailures)("rejects %s due to cross-purpose mismatch", (filename) => {
+    const obj = readJsonFixture(filename);
+
+    // Schema-level should succeed
+    const s = AikenPlutusJsonSchema.safeParse(obj);
+    if (!s.success) console.log(`unexpected schema issues (${filename}):`, s.error.issues);
+    expect(s.success).toBe(true);
+
+    // API-level should fail equality guard
+    const v = validateAikenBlueprint(obj);
+    expect(v.ok).toBe(false);
+    if (!v.ok) {
+      expect(v.errors.some((e) => e.code === "EQUALITY_GUARD")).toBe(true);
+    }
   });
 });
 
