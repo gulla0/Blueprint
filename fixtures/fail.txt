@@ -1,0 +1,1 @@
+This is just a random txt file meanto check if the validation functions catch the failure.
