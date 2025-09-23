@@ -12,11 +12,11 @@ const looksLikeCborByteString = (s: string) => {
 };
 
 /** ===== Base pieces ===== */
-const RefOnly = z.object({ $ref: z.string() }).strict();
-const EmptySchema = z.object({}).strict(); // Aiken's Data::Opaque (may also carry title/description via Annotated)
+export const RefOnly = z.object({ $ref: z.string() }).strict();
+export const EmptySchema = z.object({}).strict(); // Aiken's Data::Opaque
 
 /** Annotatable wrapper (Aiken's Annotated<T> flattens title/description) */
-const Annotatable = z
+export const Annotatable = z
   .object({
     title: z.string().optional(),
     description: z.string().optional(),
@@ -24,8 +24,8 @@ const Annotatable = z
   .passthrough();
 
 /** dataType enums (Aiken has two "namespaces") */
-const PlutusDataType = z.enum(["integer", "bytes", "list", "map"]); // (Note: no "string" at Data layer)
-const SchemaDataType = z.enum([
+export const PlutusDataType = z.enum(["integer", "bytes", "list", "map"]);
+export const SchemaDataType = z.enum([
   "#unit",
   "#boolean",
   "#integer",
@@ -45,7 +45,8 @@ let DeclarationData: ZAny;
 let ItemsData: ZAny;
 
 /** Inline Data (may carry title/description via Annotated) */
-const InlineData: z.ZodType<any> = Annotatable.and(
+// ⬇⬇⬇  REMOVED `: z.ZodType<any>` so Zod can infer precisely
+export const InlineData = Annotatable.and(
   z.union([
     // Opaque / doc-only: {}
     z.object({}).strict().passthrough(),
@@ -84,7 +85,7 @@ const InlineData: z.ZodType<any> = Annotatable.and(
           Annotatable.and(
             z
               .object({
-                dataType: z.literal("constructor").optional(), // Aiken includes it; keep optional for leniency
+                dataType: z.literal("constructor").optional(),
                 index: z.number().int(),
                 fields: z.array(z.lazy(() => DeclarationData)).default([]),
               })
@@ -99,22 +100,12 @@ const InlineData: z.ZodType<any> = Annotatable.and(
 );
 
 /** Declaration<Data> = $ref OR inline Data */
-DeclarationData = z.union([
-  RefOnly,
-  InlineData, // includes {} opaque and all Data forms; carries optional title/description
-]);
+DeclarationData = z.union([RefOnly, InlineData]);
 
 /** Items<Data> = One(Declaration<Data>) OR Many(Annotated<Declaration<Data>>[]) */
 ItemsData = z.union([
   z.lazy(() => DeclarationData),
-  z.array(
-    z.union([
-      // Annotated $ref
-      Annotatable.and(RefOnly),
-      // Annotated InlineData
-      InlineData,
-    ])
-  ),
+  z.array(z.union([Annotatable.and(RefOnly), InlineData])),
 ]);
 
 /** -----------------------------------------------------------
@@ -130,7 +121,6 @@ let InlineSchema: ZAny;
 InlineSchema = Annotatable.and(
   z.union([
     // 1) Hash-prefixed schema wrappers
-    //    - bare: #integer, #bytes, #string, #unit, #boolean
     z
       .object({
         dataType: z.enum(["#integer", "#bytes", "#string", "#unit", "#boolean"]),
@@ -168,43 +158,35 @@ DeclarationSchema = z.union([RefOnly, InlineSchema]);
 /** Items<Schema> = One(Declaration<Schema>) OR Many(Annotated<Declaration<Schema>>[]) */
 ItemsSchema = z.union([
   z.lazy(() => DeclarationSchema),
-  z.array(
-    z.union([
-      // Annotated $ref
-      Annotatable.and(RefOnly),
-      // Annotated inline schema
-      InlineSchema,
-    ])
-  ),
+  z.array(z.union([Annotatable.and(RefOnly), InlineSchema])),
 ]);
 
 /** -----------------------------------------------------------
  * TypeDef (what `definitions` holds) = Annotated<Schema>
  * --------------------------------------------------------- */
-const TypeDef: z.ZodType<any> = z.lazy(() => InlineSchema);
+// ⬇⬇⬇  REMOVED `: z.ZodType<any>` so inference stays precise
+export const TypeDef = z.lazy(() => InlineSchema);
 
-/** ===== SchemaRefOrInlineOrEmpty for datum/redeemer/parameters =====
- * Aiken allows: $ref | {} (opaque) | inline Schema (same as in definitions).
- */
-const SchemaRefOrInlineOrEmpty = z.union([RefOnly, EmptySchema, TypeDef]);
+/** ===== SchemaRefOrInlineOrEmpty for datum/redeemer/parameters ===== */
+export const SchemaRefOrInlineOrEmpty = z.union([RefOnly, EmptySchema, TypeDef]);
 
 /** ===== Datum/Redeemer + Parameters ===== */
-const DatumOrRedeemer = z
+export const DatumOrRedeemer = z
   .object({
     title: z.string().optional(),
     schema: SchemaRefOrInlineOrEmpty,
   })
   .strict();
 
-const Parameter = z
+export const Parameter = z
   .object({
     title: z.string(),
     schema: SchemaRefOrInlineOrEmpty,
   })
   .strict();
 
-/** ===== Validator (unchanged) ===== */
-const Validator = z
+/** ===== Validator ===== */
+export const Validator = z
   .object({
     title: z.string(),
     datum: DatumOrRedeemer.optional(),
@@ -245,7 +227,7 @@ const Validator = z
     }
   });
 
-/** ===== Final export (unchanged) ===== */
+/** ===== Final export ===== */
 export const AikenPlutusJsonSchema = z
   .object({
     preamble: z
@@ -259,6 +241,14 @@ export const AikenPlutusJsonSchema = z
       })
       .passthrough(),
     validators: z.array(Validator).min(1),
-    definitions: z.record(TypeDef).optional(), // Annotated<Schema> by construction
+    definitions: z.record(TypeDef).optional(),
   })
   .strict();
+
+/** ===== NEW precise TS types inferred from Zod ===== */
+export type AikenBlueprint = z.infer<typeof AikenPlutusJsonSchema>;
+export type SchemaNode = z.infer<typeof SchemaRefOrInlineOrEmpty>;
+export type TypeDefNode = z.infer<typeof TypeDef>;
+export type ValidatorNode = z.infer<typeof Validator>;
+export type ParameterNode = z.infer<typeof Parameter>;
+export type DatumOrRedeemerNode = z.infer<typeof DatumOrRedeemer>;
