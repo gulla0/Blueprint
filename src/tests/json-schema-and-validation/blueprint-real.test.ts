@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AikenPlutusJsonSchema } from "~/lib/AikenPlutusJsonSchema";
 import { validateAikenBlueprint } from "~/lib/validatePlutusJson";
-import { readJsonFixture, readTextFixture } from "./_helpers";
+import { readJsonFixture, readTextFixture } from "../_helpers";
 
 // Good blueprints
 const validJson = ["dedog.blueprint.json", "asteria.blueprint.json"] as const;

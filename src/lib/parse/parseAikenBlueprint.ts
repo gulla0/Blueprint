@@ -189,7 +189,8 @@ import type {
       const pv = getOrInitParsedValidator(out, base, v);
   
       // If this is NOT the first time we see this base, we still only set params/CBOR/hash once.
-      // (Optional) If you want to detect mismatches, compare here and throw/log.
+      // (Optional) If you want to detect mismatches, compare here and throw/log. 
+      // PS: The above detect mismatches is implemented in validation step, so we don't need to do it here.
   
       addPurposeEntry(pv, purpose, v);
     }
