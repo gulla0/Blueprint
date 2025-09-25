@@ -50,7 +50,7 @@ import type {
    * 1) Schema summarizer (precise node preserved)
    *    - Returns a human-friendly "typeHint" AND the exact node
    * --------------------------------------------------------- */
-  function summarizeSchema(node: SchemaNode | undefined): SchemaSummary {
+  export function summarizeSchema(node: SchemaNode | undefined): SchemaSummary {
     if (!node) return { typeHint: "none", raw: {} as SchemaNode };
   
     // $ref

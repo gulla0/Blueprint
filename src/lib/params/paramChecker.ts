@@ -38,7 +38,7 @@ function checkNode(
   if (isRef(node)) {
     const resolved = resolveRef(node.$ref, definitions);
     if (!resolved) return fail(`Unresolved $ref: ${node.$ref}`);
-    return checkInline(resolved as any, value, definitions, cfg);
+    return checkNode(resolved as any, value, definitions, cfg);
   }
   if (isEmpty(node)) {
     return isPlutusData(value) ? ok() : fail("Expected valid Plutus Data");
