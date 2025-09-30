@@ -4,6 +4,7 @@ import { type AppType } from "next/app";
 import { Geist } from "next/font/google";
 import "@meshsdk/react/styles.css";
 import { MeshProvider } from "@meshsdk/react";
+import Layout from "~/components/Layout";
 
 import { api } from "~/utils/api";
 
@@ -21,7 +22,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
     <SessionProvider session={session}>
       <div className={geist.className}>
         <MeshProvider>
-          <Component {...pageProps} />
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
         </MeshProvider>
       </div>
     </SessionProvider>
