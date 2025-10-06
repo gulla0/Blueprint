@@ -8,12 +8,12 @@ export default function NavBar() {
         <div className="text-lg font-bold">
           <Link href="/">Aiken Blueprint</Link>
         </div>
-        <ul className="flex items-center gap-4 text-sm font-medium">
+        <ul className="flex items-center gap-8 text-sm font-medium">
           <li className="flex items-center">
-            <Link href="/about">Docs</Link>
+            <Link href="/docs">Docs</Link>
           </li>
           <li className="flex items-center">
-            <CardanoWallet isDark={true} persist={true} />
+            <CardanoWallet isDark={false} persist={true} />
           </li>
         </ul>
       </div>
